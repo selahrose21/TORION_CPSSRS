@@ -2,6 +2,8 @@ package com.torion.ui;
 
 import com.torion.dao.UserDao;
 import com.torion.model.User;
+
+import java.util.List;
 import java.util.Scanner;
 
 public class AdminMenu {
@@ -31,15 +33,32 @@ public class AdminMenu {
 
             String choice = scanner.nextLine().trim();
 
-            switch (choice) {
-                case "7":
-                    loggedIn = false;
-                    System.out.println("-> Logged out successfully. Returning to main menu...");
-                    break;
-                default:
-                    System.out.println("Invalid option. Please choose 1-7.");
-                    break;
+            switch (choice){
+                case "1" -> viewAllUser();
+                default -> System.out.println(" -> [ERROR] Invalid Option.");
+
             }
         }
+    }
+
+    private void displayUserTable(List<User> User, String title){
+        System.out.println("\n===============================" +title+ "===============================");
+        if(User.isEmpty()){
+            System.out.println(" -> No Records Found.");
+            return;
+        }
+
+        System.out.println("+-------+-------------------+-------------------+------------+------------+");
+        System.out.printf("| %-3s | %-15s | %-15s | %-10s | %-10s |\n", "ID", "Fullname", "Username", "Role", "Status");
+        System.out.println("+-------+-------------------+-------------------+------------+------------+");
+            for(User u : User){
+                System.out.printf("| %-3s | %-15s | %-15s | %-10s | %-10s |\n",
+                        u.user_id(), u.full_name(), u.username(), u.role(), u.status());
+            }
+        System.out.println("+-------+-------------------+-------------------+------------+------------+");
+    }
+
+    private void viewAllUser(){
+        displayUserTable(userDao.getAllUser(), "ALL REGISTERED USER");
     }
 }

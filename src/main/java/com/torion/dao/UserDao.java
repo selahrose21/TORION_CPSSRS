@@ -3,6 +3,8 @@ package com.torion.dao;
 import com.torion.model.User;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UserDao {
 
@@ -88,6 +90,34 @@ public class UserDao {
             return null;
         }
 
-    }
+
+        public List<User> getAllUser(){
+            List<User> usersList = new ArrayList<>();
+            String sql = "SELECT user_id, full_name, username, password_hash, role, status FROM User";
+
+            try (Connection conn = DatabaseConnection.getConnection();
+                 Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(sql)){
+
+                while (rs.next()){
+                    usersList.add(new User(
+                            rs.getInt("user_id"),
+                            rs.getString("full_name"),
+                            rs.getString("username"),
+                            rs.getString("password_hash"),
+                            rs.getString("role"),
+                            rs.getString("status")
+
+                    ));
+                }
+            } catch (SQLException e) {
+                System.err.println("Error fetching all users: " + e.getMessage());
+            }
+            return usersList;
+
+
+        }
+
+}
 
 
