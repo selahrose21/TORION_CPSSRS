@@ -35,6 +35,8 @@ public class AdminMenu {
 
             switch (choice){
                 case "1" -> viewAllUser();
+                case "2" -> viewPendingUsers();
+                case "3" -> approveUser();
                 default -> System.out.println(" -> [ERROR] Invalid Option.");
 
             }
@@ -49,7 +51,7 @@ public class AdminMenu {
         }
 
         System.out.println("+-------+-------------------+-------------------+------------+------------+");
-        System.out.printf("| %-3s | %-15s | %-15s | %-10s | %-10s |\n", "ID", "Fullname", "Username", "Role", "Status");
+        System.out.printf("| %-3s | %-15s | %-15s | %-10s | %-10s |\n", "ID", "Full name", "Username", "Role", "Status");
         System.out.println("+-------+-------------------+-------------------+------------+------------+");
             for(User u : User){
                 System.out.printf("| %-3s | %-15s | %-15s | %-10s | %-10s |\n",
@@ -60,5 +62,34 @@ public class AdminMenu {
 
     private void viewAllUser(){
         displayUserTable(userDao.getAllUser(), "ALL REGISTERED USER");
+    }
+
+    private void viewPendingUsers(){
+        displayUserTable(UserDao.getPendingUser(), "PENDING APPROVALS");
+    }
+
+    private void approveUser(){
+        List<User> pendingUsers = UserDao.getPendingUser();
+        displayUserTable(pendingUsers, "PENDING APPROVALS");
+
+        if(pendingUsers.isEmpty()){
+            return;
+        }
+
+        System.out.print("Enter User ID to approver (or 0 to cancel): ");
+        int userId = scanner.nextInt();
+
+        if(userId == 0){
+            System.out.println(" -> Operation Cancelled by the user.");
+        }
+
+        boolean exists = pendingUsers.stream().anyMatch(u ->u.user_id() == userId);
+        if(!exists){
+            System.out.println(" -> [ERROR] User ID not found.");
+            return;
+        }
+
+        UserDao.approveUser(userId);
+
     }
 }
