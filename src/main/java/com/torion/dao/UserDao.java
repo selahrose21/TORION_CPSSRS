@@ -91,7 +91,7 @@ public class UserDao {
         }
 
 
-        public List<User> getAllUser(){
+        public static List<User> getAllUser(){
             List<User> usersList = new ArrayList<>();
             String sql = "SELECT user_id, full_name, username, password_hash, role, status FROM User";
 
@@ -162,6 +162,31 @@ public class UserDao {
             }
         }catch (SQLException e){
             System.err.println("Error approving users: " +e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean updateUserAndStatus(int userId, String newRole, String newStatus){
+        String sql = "UPDATE User SET role = ?, status = ? WHERE user_id =?";
+
+        try(
+            Connection conn = DatabaseConnection.getConnection();
+            PreparedStatement pstmt = conn.prepareStatement(sql)){
+
+            pstmt.setString(1, newRole.toUpperCase());
+            pstmt.setString(2, newStatus.toUpperCase());
+            pstmt.setInt(3, userId);
+
+            int rowsUpdated = pstmt.executeUpdate();
+            if(rowsUpdated > 0){
+                System.out.println(" -> User ID: " +userId+ "updated successfully!");
+                return true;
+            }else{
+                System.out.println(" -> User ID not found!");
+            }
+            return false;
+        } catch (SQLException e){
+            System.err.println("Error updating user:" +e.getMessage());
         }
         return false;
     }
