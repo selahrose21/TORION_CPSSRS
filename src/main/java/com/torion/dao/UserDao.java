@@ -159,7 +159,7 @@ public class UserDao {
                 System.out.println(" -> User ID: " +userId+ " approved successfully!");
                 return true;
             } else {
-                System.out.println(" -> ID not found."); // <-- This is your original else block!
+                System.out.println(" -> ID not found.");
             }
         }catch (SQLException e){
             System.err.println("Error approving users: " +e.getMessage());
@@ -183,11 +183,54 @@ public class UserDao {
                 System.out.println(" -> User ID: " +userId+ " updated successfully!");
                 return true;
             } else {
-                System.out.println(" -> User ID not found!"); // <-- Your original else block
+                System.out.println(" -> User ID not found!");
             }
             return false;
         } catch (SQLException e){
             System.err.println("Error updating user:" +e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean addUser(int adminId, String username, String password, String role, String status) {
+        String sql = "INSERT INTO User (username, password, role, status) VALUES (?, ?, ?, ?)";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            pstmt.setString(1, username);
+            pstmt.setString(2, password);
+            pstmt.setString(3, role);
+            pstmt.setString(4, status);
+
+            int rows = pstmt.executeUpdate();
+            if (rows > 0) {
+                String details = "Admin ID " + adminId + " added new user " + username;
+                ActivityLogDao.logAction(adminId, "ADD_USER", details);
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean deleteUser(int adminId, int targetUserId) {
+        String sql = "DELETE FROM User WHERE user_id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, targetUserId);
+
+            int rows = pstmt.executeUpdate();
+            if (rows > 0) {
+                String details = "Admin ID " + adminId + " deleted user ID " + targetUserId;
+                ActivityLogDao.logAction(adminId, "DELETE_USER", details);
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return false;
     }

@@ -40,14 +40,49 @@ public class AdminMenu {
                 case "1" -> viewAllUser();
                 case "2" -> viewPendingUsers();
                 case "3" -> approveUser(admin);
+                case "4" -> {
+                    System.out.print("Enter new username: ");
+                    String newUsername = scanner.nextLine().trim();
+                    System.out.print("Enter password: ");
+                    String newPassword = scanner.nextLine().trim();
+                    System.out.print("Enter role (e.g., USER/ADMIN): ");
+                    String role = scanner.nextLine().trim();
+
+                    boolean success = userDao.addUser(admin.user_id(), newUsername, newPassword, role, "ACTIVE");
+                    if (success) {
+                        System.out.println("[SUCCESS] User added and audit log recorded.");
+                    } else {
+                        System.out.println("[ERROR] Failed to add user.");
+                    }
+                }
                 case "5" -> updateUser(admin);
+                case "6" -> {
+                    System.out.println("\n--- Current Users List ---");
+                    viewAllUser();
+
+                    System.out.print("\nEnter target User ID to delete: ");
+                    if (scanner.hasNextInt()) {
+                        int targetId = scanner.nextInt();
+                        scanner.nextLine(); // consume newline
+
+                        boolean success = userDao.deleteUser(admin.user_id(), targetId);
+                        if (success) {
+                            System.out.println("[SUCCESS] User deleted and audit log recorded.");
+                        } else {
+                            System.out.println("[ERROR] Failed to delete user (ID may not exist).");
+                        }
+                    } else {
+                        System.out.println("[ERROR] Invalid numeric ID format.");
+                        scanner.nextLine();
+                    }
+                }
                 case "7" -> auditLogSubMenu();
                 case "8" -> {
                     ActivityLogDao.logAction(admin.user_id(), "USER_LOGOUT", "User " + admin.username() + " logged out.");
                     loggedIn = false;
-                    System.out.println(" -> Logged out successfully. Returning to main menu...");
+                    System.out.println("-> Logged out successfully. Returning to main menu...");
                 }
-                default -> System.out.println(" -> [ERROR] Invalid Option.");
+                default -> System.out.println("-> [ERROR] Invalid Option.");
             }
         }
     }
