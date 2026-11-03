@@ -145,7 +145,7 @@ public class UserDao {
 
     }
 
-    public static boolean approveUser(int userId){
+    public static boolean approveUser(int userId, int adminId){
         String sql = "UPDATE User Set status = 'APPROVED' WHERE user_id = ?";
 
         try(Connection conn = DatabaseConnection.getConnection();
@@ -155,10 +155,11 @@ public class UserDao {
             int rowsUpdated = pstmt.executeUpdate();
 
             if(rowsUpdated > 0){
+                ActivityLogDao.logAction(adminId, "USER_APPROVED", "Admin ID " + adminId + " approved account for User ID " + userId);
                 System.out.println(" -> User ID: " +userId+ " approved successfully!");
                 return true;
-            }else{
-                System.out.println(" -> ID not found.");
+            } else {
+                System.out.println(" -> ID not found."); // <-- This is your original else block!
             }
         }catch (SQLException e){
             System.err.println("Error approving users: " +e.getMessage());
@@ -166,11 +167,10 @@ public class UserDao {
         return false;
     }
 
-    public boolean updateUserAndStatus(int userId, String newRole, String newStatus){
-        String sql = "UPDATE User SET role = ?, status = ? WHERE user_id =?";
+    public boolean updateUserAndStatus(int userId, String newRole, String newStatus, int adminId){
+        String sql = "UPDATE User SET role = ?, status = ? WHERE user_id = ?";
 
-        try(
-            Connection conn = DatabaseConnection.getConnection();
+        try(Connection conn = DatabaseConnection.getConnection();
             PreparedStatement pstmt = conn.prepareStatement(sql)){
 
             pstmt.setString(1, newRole.toUpperCase());
@@ -179,10 +179,11 @@ public class UserDao {
 
             int rowsUpdated = pstmt.executeUpdate();
             if(rowsUpdated > 0){
+                ActivityLogDao.logAction(adminId, "USER_UPDATED", "Admin ID " + adminId + " updated User ID " + userId + " to ROLE: " + newRole + ", STATUS: " + newStatus);
                 System.out.println(" -> User ID: " +userId+ " updated successfully!");
                 return true;
-            }else{
-                System.out.println(" -> User ID not found!");
+            } else {
+                System.out.println(" -> User ID not found!"); // <-- Your original else block
             }
             return false;
         } catch (SQLException e){

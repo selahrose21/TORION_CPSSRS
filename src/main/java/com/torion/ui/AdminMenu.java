@@ -1,6 +1,8 @@
 package com.torion.ui;
 
+import com.torion.dao.ActivityLogDao;
 import com.torion.dao.UserDao;
+import com.torion.model.ActivityLog;
 import com.torion.model.User;
 
 import java.util.List;
@@ -27,19 +29,25 @@ public class AdminMenu {
             System.out.println("4. Add New User");
             System.out.println("5. Update User Role / Status");
             System.out.println("6. Delete User Account");
-            System.out.println("7. Logout");
+            System.out.println("7. View System Audit Logs");
+            System.out.println("8. Logout");
             System.out.println("--------------------------------------------------");
-            System.out.print("Choose an option (1-7): ");
+            System.out.print("Choose an option (1-8): ");
 
             String choice = scanner.nextLine().trim();
 
             switch (choice){
                 case "1" -> viewAllUser();
                 case "2" -> viewPendingUsers();
-                case "3" -> approveUser();
+                case "3" -> approveUser(admin);
                 case "5" -> updateUser(admin);
+                case "7" -> auditLogSubMenu();
+                case "8" -> {
+                    ActivityLogDao.logAction(admin.user_id(), "USER_LOGOUT", "User " + admin.username() + " logged out.");
+                    loggedIn = false;
+                    System.out.println(" -> Logged out successfully. Returning to main menu...");
+                }
                 default -> System.out.println(" -> [ERROR] Invalid Option.");
-
             }
         }
     }
@@ -69,7 +77,7 @@ public class AdminMenu {
         displayUserTable(UserDao.getPendingUser(), "PENDING APPROVALS");
     }
 
-    private void approveUser(){
+    private void approveUser(User admin) {
         List<User> pendingUsers = UserDao.getPendingUser();
         displayUserTable(pendingUsers, "PENDING APPROVALS");
 
@@ -77,21 +85,20 @@ public class AdminMenu {
             return;
         }
 
-        System.out.print("Enter User ID to approver (or 0 to cancel): ");
-        int userId = scanner.nextInt();
+        int userId = readIntInput("Enter User ID to approve (or 0 to cancel): ");
 
         if(userId == 0){
             System.out.println(" -> Operation Cancelled by the user.");
+            return;
         }
 
-        boolean exists = pendingUsers.stream().anyMatch(u ->u.user_id() == userId);
+        boolean exists = pendingUsers.stream().anyMatch(u -> u.user_id() == userId);
         if(!exists){
             System.out.println(" -> [ERROR] User ID not found.");
             return;
         }
 
-        UserDao.approveUser(userId);
-
+        UserDao.approveUser(userId, admin.user_id());
     }
 
     private void updateUser(User currentAdmin){
@@ -110,6 +117,7 @@ public class AdminMenu {
 
         if(userId == currentAdmin.user_id()){
             System.out.println(" -> [WARNING] Modifying current active Admin is restricted");
+            return;
         }
 
         String newRole = readValidRole();
@@ -124,7 +132,7 @@ public class AdminMenu {
             return;
         }
 
-        userDao.updateUserAndStatus(userId, newRole, newStatus);
+        userDao.updateUserAndStatus(userId, newRole, newStatus, currentAdmin.user_id());
     }
 
     private String readValidRole(){
@@ -166,5 +174,45 @@ public class AdminMenu {
                 System.out.println(" -> [ERROR] Please enter a valid numeric ID.");
             }
         }
+    }
+
+    private void auditLogSubMenu() {
+        System.out.println("\n--- AUDIT LOG MENU ---");
+        System.out.println("1. View All System Logs");
+        System.out.println("2. Filter Logs by User ID");
+        System.out.print("Choose an option: ");
+        String choice = scanner.nextLine().trim();
+
+        if (choice.equals("1")) {
+            displayLogTable(ActivityLogDao.getAllLogs(), "ALL SYSTEM AUDIT LOGS");
+        } else if (choice.equals("2")) {
+            int targetUserId = readIntInput("Enter User ID to filter logs: ");
+            displayLogTable(ActivityLogDao.getLogsByUserId(targetUserId), "LOGS FOR USER ID " + targetUserId);
+        } else {
+            System.out.println(" -> [ERROR] Invalid Selection.");
+        }
+    }
+
+    private void displayLogTable(List<ActivityLog> logs, String title) {
+        System.out.println("\n-------------------------------------------------- " + title + " --------------------------------------------------");
+        if (logs.isEmpty()) {
+            System.out.println(" -> No Logs Found.");
+            return;
+        }
+
+        System.out.println("------------------------------------------------------------------------------------------------------------------------");
+        System.out.printf("| %-8s | %-8s | %-20s | %-20s | %-45s |\n", "Log ID", "User ID", "Action Taken", "Timestamp", "Details");
+        System.out.println("------------------------------------------------------------------------------------------------------------------------");
+
+        for (ActivityLog log : logs) {
+            System.out.printf("| %-8d | %-8d | %-20s | %-20s | %-45s |\n",
+                    log.log_id(),
+                    log.userId(),
+                    log.action_taken(),
+                    log.timestamp(),
+                    log.details()
+            );
+        }
+        System.out.println("------------------------------------------------------------------------------------------------------------------------");
     }
 }

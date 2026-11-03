@@ -1,5 +1,6 @@
 package com.torion.ui;
 
+import com.torion.dao.ActivityLogDao;
 import com.torion.dao.UserDao;
 import com.torion.model.User;
 import java.util.Scanner;
@@ -80,7 +81,9 @@ public class Authentication {
         User user = userDao.login(username, password_hash);
 
         if (user != null){
-            System.out.println("/n ->Welcome " +user.username()+ " | ROLE: " +user.role()+"");
+            ActivityLogDao.logAction(user.user_id(), "USER_LOGIN", "User " + user.username() + " logged into the system.");
+
+            System.out.println("\n ->Welcome " +user.username()+ " | ROLE: " +user.role()+"");
             switch(user.role()){
                 case "ADMIN" -> new AdminMenu(userDao, sc).display(user);
                 default -> System.out.println("Account role not found");
