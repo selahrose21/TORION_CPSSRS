@@ -192,16 +192,17 @@ public class UserDao {
         return false;
     }
 
-    public boolean addUser(int adminId, String username, String password, String role, String status) {
-        String sql = "INSERT INTO User (username, password, role, status) VALUES (?, ?, ?, ?)";
+    public boolean addUser(int adminId, String fullName, String username, String password, String role, String status) {
+        String sql = "INSERT INTO User (full_name, username, password_hash, role, status) VALUES (?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            pstmt.setString(1, username);
-            pstmt.setString(2, password);
-            pstmt.setString(3, role);
-            pstmt.setString(4, status);
+            pstmt.setString(1, fullName);
+            pstmt.setString(2, username);
+            pstmt.setString(3, password);
+            pstmt.setString(4, role.toUpperCase());
+            pstmt.setString(5, status.toUpperCase());
 
             int rows = pstmt.executeUpdate();
             if (rows > 0) {
@@ -210,7 +211,7 @@ public class UserDao {
                 return true;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Error adding user: " + e.getMessage());
         }
         return false;
     }

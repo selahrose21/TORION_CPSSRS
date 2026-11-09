@@ -1,0 +1,5 @@
+PARKSPOT - DAILY PARKING COLLECTIONS & UTILIZATION REPORT
+--------------------------------------------------------
+Total Vehicles Served: 1
+Total Daily Revenue: P1.79
+Avg. Parking Duration: 3.58 minutes
