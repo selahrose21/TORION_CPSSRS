@@ -1,90 +1,150 @@
 package com.torion.ui;
 
-import com.torion.dao.ActivityLogDao;
 import com.torion.dao.UserDao;
 import com.torion.model.User;
 import java.util.Scanner;
 
 public class Authentication {
-
     private final UserDao userDao;
-    private final Scanner sc;
+    private final Scanner scanner;
 
-    public Authentication(UserDao userDao, Scanner sc){
+    public Authentication(UserDao userDao, Scanner scanner) {
         this.userDao = userDao;
-        this.sc = sc;
+        this.scanner = scanner;
     }
 
-    public void start(){
-        boolean running = true;
-        while (running) {
-            System.out.println("\n======================================");
-            System.out.println("\t   PARKSPOT SYSTEM MENU              ");
-            System.out.println("======================================");
-            System.out.println("1. Login");
-            System.out.println("2. Register");
-            System.out.println("3. Exit");
-            System.out.print("Choose an option: ");
-            String choice = sc.nextLine().trim();
+    public void start() {
+        while (true) {
+            System.out.println("\n=== WELCOME TO PARKSPOT ===");
+            System.out.println("[1] Login");
+            System.out.println("[2] Register");
+            System.out.println("[0] Exit");
 
-            switch (choice) {
-                case "1" -> handleLogin();
-                case "2" -> {
-                    System.out.print("Enter full name: ");
-                    String fname = sc.nextLine().trim();
-                    System.out.print("Enter username: ");
-                    String user = sc.nextLine().trim();
-                    System.out.print("Enter password: ");
-                    String pass = sc.nextLine().trim();
+            int choice = promptIntOrCancel(scanner, "Choose an option");
 
-                    System.out.print("Select Role [1] Admin [2] Attendant [3] Customer: ");
-                    int roleChoice = sc.nextInt();
-                    sc.nextLine(); // consume newline
-
-                    String role;
-                    switch (roleChoice) {
-                        case 1 -> role = "ADMIN";
-                        case 2 -> role = "ATTENDANT";
-                        case 3 -> role = "CUSTOMER";
-                        default -> role = null;
-                    }
-
-                    if (role != null) {
-                        UserDao.registerUser(fname, user, pass, role);
-                        System.out.println("[SUCCESS] Registration complete! You can now log in.");
-                    } else {
-                        System.out.println(" -> [ERROR] Invalid role selection!");
-                    }
-                } // Added missing break/block boundary
-                case "3" -> {
-                    System.out.println("Exiting application. Goodbye!");
-                    running = false;
-                }
-                default -> System.out.println(" -> [ERROR] Invalid option. Please choose 1, 2, or 3.");
+            if (choice == -1) {
+                System.out.println("Exiting ParkSpot. Goodbye!");
+                break;
+            } else if (choice == 1) {
+                handleLogin();
+            } else if (choice == 2) {
+                handleRegister();
+            } else {
+                System.out.println("Invalid option. Please choose 1, 2, or 0.");
             }
         }
     }
 
-    private void handleLogin(){
-        System.out.print("Enter username: ");
-        String username = sc.nextLine().trim();
-        System.out.print("Enter password: ");
-        String password_hash = sc.nextLine().trim();
+    private void handleLogin() {
+        System.out.println("\n=== LOGIN (Type 0 to Cancel) ===");
+        String username = promptInputOrCancel(scanner, "Enter Username");
+        if (username == null) {
+            System.out.println("Login canceled.");
+            return;
+        }
 
-        User user = userDao.login(username, password_hash);
+        String password = promptInputOrCancel(scanner, "Enter Password");
+        if (password == null) {
+            System.out.println("Login canceled.");
+            return;
+        }
 
-        if (user != null){
-            ActivityLogDao.logAction(user.user_id(), "USER_LOGIN", "User " + user.username() + " logged into the system.");
+        User user = UserDao.login(username, password);
+        if (user == null) {
+            System.out.println("Invalid credentials or account is still PENDING approval.");
+            return;
+        }
 
-            System.out.println("\n -> Welcome " + user.username() + " | ROLE: " + user.role() + "");
-            switch(user.role()){
-                case "ADMIN" -> new AdminMenu(userDao, sc).display(user);
-                case "ATTENDANT" -> new AttendantMenu(sc).display(user);
-                case "CUSTOMER" -> new CustomerMenu(sc).display(user);
-                default -> System.out.println(" -> [ERROR] Account role dashboard not found.");
+        System.out.println("Welcome, " + user.full_name() + " (" + user.role() + ")!");
+        switch (user.role().toUpperCase()) {
+            case "ADMIN" -> new AdminMenu(userDao, scanner).display(user);
+            case "ATTENDANT" -> new AttendantMenu(scanner).display(user);
+            case "CUSTOMER" -> new CustomerMenu(scanner).display(user);
+            default -> System.out.println("Unknown role.");
+        }
+    }
+
+    private void handleRegister() {
+        System.out.println("\n=== REGISTER NEW ACCOUNT (Type 0 to Cancel) ===");
+
+        // 1. Full Name with Cancel Option
+        String fullName = promptInputOrCancel(scanner, "Enter Full Name");
+        if (fullName == null) {
+            System.out.println("Registration canceled. Returning to main menu...");
+            return;
+        }
+
+        // 2. Username with Cancel Option
+        String username = promptInputOrCancel(scanner, "Enter Username");
+        if (username == null) {
+            System.out.println("Registration canceled. Returning to main menu...");
+            return;
+        }
+
+        // 3. Password with Cancel Option
+        String password = promptInputOrCancel(scanner, "Enter Password");
+        if (password == null) {
+            System.out.println("Registration canceled. Returning to main menu...");
+            return;
+        }
+
+        // 4. Role Selection Loop (Retries on invalid input + 0 to Cancel)
+        String role = null;
+        while (role == null) {
+            System.out.println("\nSelect Role:");
+            System.out.println("[1] Customer");
+            System.out.println("[2] Attendant");
+            System.out.println("[0] Cancel Registration");
+
+            int roleChoice = promptIntOrCancel(scanner, "Choose option");
+
+            if (roleChoice == -1) {
+                System.out.println("Registration canceled. Returning to main menu...");
+                return;
+            } else if (roleChoice == 1) {
+                role = "CUSTOMER";
+            } else if (roleChoice == 2) {
+                role = "ATTENDANT";
+            } else {
+                System.out.println("Invalid choice! Please enter 1 for Customer, 2 for Attendant, or 0 to cancel.");
             }
+        }
+
+        // 5. Save to Database via UserDao
+        boolean success = UserDao.registerUser(fullName, username, password, role);
+        if (success) {
+            System.out.println("Registration successful! Your account status is PENDING admin approval.");
         } else {
-            System.out.println(" -> [ERROR] Invalid username or password.");
+            System.out.println("Registration failed. Username may already exist.");
+        }
+    }
+
+    private static String promptInputOrCancel(Scanner scanner, String label) {
+        while (true) {
+            System.out.print(label + " (or 0 to cancel): ");
+            String input = scanner.nextLine().trim();
+            if (input.equals("0")) {
+                return null;
+            }
+            if (!input.isEmpty()) {
+                return input;
+            }
+            System.out.println("Input cannot be empty. Please try again.");
+        }
+    }
+
+    private static int promptIntOrCancel(Scanner scanner, String label) {
+        while (true) {
+            System.out.print(label + " (or 0 to cancel): ");
+            String input = scanner.nextLine().trim();
+            if (input.equals("0")) {
+                return -1;
+            }
+            try {
+                return Integer.parseInt(input);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid number! Please enter digits only.");
+            }
         }
     }
 }

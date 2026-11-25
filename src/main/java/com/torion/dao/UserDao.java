@@ -53,7 +53,7 @@ public class UserDao {
         }
     }
 
-    public User login(String username, String password_hash) {
+    public static User login(String username, String password_hash) {
 
         String sql = "SELECT user_id, full_name, username, password_hash, role, status FROM User WHERE username = ? AND password_hash = ?";
 
